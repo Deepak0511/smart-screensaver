@@ -1,106 +1,115 @@
 package in.dpk.assistants.smart_screensaver.ui;
 
-import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import in.dpk.assistants.smart_screensaver.service.ScreensaverService;
+import in.dpk.assistants.smart_screensaver.service.UserService;
+import in.dpk.assistants.smart_screensaver.service.BackgroundService;
+import in.dpk.assistants.smart_screensaver.service.GreetingService;
+import in.dpk.assistants.smart_screensaver.service.LocationService;
+import in.dpk.assistants.smart_screensaver.ui.components.BackgroundContainer;
+import in.dpk.assistants.smart_screensaver.ui.components.ContentDisplay;
+import in.dpk.assistants.smart_screensaver.ui.components.ControlButtons;
+import in.dpk.assistants.smart_screensaver.ui.components.LocationManager;
 
+import java.time.LocalTime;
 import java.util.Map;
-import java.util.HashMap;
 
+/**
+ * Main screensaver view that orchestrates all components.
+ * Single Responsibility: Coordinate between different UI components and services.
+ */
 @Route("")
 @PageTitle("Smart Screensaver")
 public class ScreensaverView extends VerticalLayout {
     
-    private H1 greetingLabel;
-    private H2 timeLabel;
-    private H3 dateLabel;
-    private Paragraph quoteLabel;
-    private Paragraph weatherLabel;
-    private Paragraph trafficLabel;
-    private Button settingsButton;
+    // Services
+    private final ScreensaverService screensaverService;
+    private final UserService userService;
+    private final BackgroundService backgroundService;
+    private final GreetingService greetingService;
+    private final LocationService locationService;
     
-    public ScreensaverView() {
+    // UI Components
+    private final BackgroundContainer backgroundContainer;
+    private final ContentDisplay contentDisplay;
+    private final ControlButtons controlButtons;
+    private final LocationManager locationManager;
+    
+    public ScreensaverView(ScreensaverService screensaverService, UserService userService, 
+                          BackgroundService backgroundService, GreetingService greetingService,
+                          LocationService locationService) {
+        this.screensaverService = screensaverService;
+        this.userService = userService;
+        this.backgroundService = backgroundService;
+        this.greetingService = greetingService;
+        this.locationService = locationService;
+        
+        // Initialize components
+        this.backgroundContainer = new BackgroundContainer();
+        this.contentDisplay = new ContentDisplay();
+        this.controlButtons = new ControlButtons(v -> requestLocationPermission());
+        this.locationManager = new LocationManager(this);
+        
         initUI();
         loadContent();
+        checkLocationStatus();
     }
     
     private void initUI() {
+        // Set up the main layout
         setSizeFull();
-        addClassName(LumoUtility.Background.CONTRAST_5);
-        addClassName(LumoUtility.Padding.LARGE);
+        setPadding(false);
+        setMargin(false);
+        setSpacing(false);
         
-        // Create main content layout
-        VerticalLayout mainContent = new VerticalLayout();
-        mainContent.setSizeFull();
-        mainContent.addClassName(LumoUtility.Display.FLEX);
-        mainContent.addClassName(LumoUtility.FlexDirection.COLUMN);
-        mainContent.addClassName(LumoUtility.JustifyContent.CENTER);
-        mainContent.addClassName(LumoUtility.AlignItems.CENTER);
+        // Add content to background container
+        backgroundContainer.addContent(
+            contentDisplay.getGreetingLabel(),
+            contentDisplay.getTimeLabel(),
+            contentDisplay.getDateLabel(),
+            contentDisplay.getQuoteLabel(),
+            contentDisplay.getWeatherLabel(),
+            contentDisplay.getTrafficLabel()
+        );
         
-        // Create content labels
-        greetingLabel = new H1();
-        greetingLabel.addClassName(LumoUtility.FontSize.XXXLARGE);
-        greetingLabel.addClassName(LumoUtility.FontWeight.BOLD);
-        
-        timeLabel = new H2();
-        timeLabel.addClassName(LumoUtility.FontSize.XXLARGE);
-        
-        dateLabel = new H3();
-        dateLabel.addClassName(LumoUtility.FontSize.LARGE);
-        
-        quoteLabel = new Paragraph();
-        quoteLabel.addClassName(LumoUtility.FontSize.LARGE);
-        
-        weatherLabel = new Paragraph();
-        weatherLabel.addClassName(LumoUtility.FontSize.MEDIUM);
-        
-        trafficLabel = new Paragraph();
-        trafficLabel.addClassName(LumoUtility.FontSize.MEDIUM);
-        
-        // Settings button
-        settingsButton = new Button(VaadinIcon.COG.create());
-        settingsButton.addClickListener(e -> Notification.show("Settings coming soon!"));
-        
-        // Add components
-        mainContent.add(greetingLabel, timeLabel, dateLabel, quoteLabel, 
-                       weatherLabel, trafficLabel);
-        
-        add(mainContent, settingsButton);
+        // Add all components to the main layout
+        add(backgroundContainer, controlButtons.getSettingsButton(), controlButtons.getLocationButton());
     }
     
     private void loadContent() {
-        Map<String, Object> content = getMockContent();
+        Map<String, Object> content = screensaverService.getScreensaverContent();
         updateUI(content);
+        updateBackground();
     }
     
-    private Map<String, Object> getMockContent() {
-        Map<String, Object> content = new HashMap<>();
-        content.put("greeting", "Good Morning");
-        content.put("time", "09:30");
-        content.put("date", "Monday, January 15");
-        content.put("quote", "The only way to do great work is to love what you do. - Steve Jobs");
-        content.put("weather", Map.of("temperature", "22°C", "condition", "Partly Cloudy"));
-        content.put("traffic", Map.of("status", "Moderate", "travelTime", "25 min"));
-        return content;
+    private void updateBackground() {
+        LocalTime now = LocalTime.now();
+        String backgroundImage = backgroundService.getBackgroundImageForTime(now);
+        backgroundContainer.setBackgroundImage(backgroundImage);
     }
     
     private void updateUI(Map<String, Object> content) {
-        greetingLabel.setText((String) content.get("greeting"));
-        timeLabel.setText((String) content.get("time"));
-        dateLabel.setText((String) content.get("date"));
-        quoteLabel.setText((String) content.get("quote"));
+        // Get user name for personalized greeting
+        String userName = "User";
+        if (userService.getUserPreference() != null) {
+            userName = userService.getUserPreference().getDisplayName();
+        }
         
-        Map<String, Object> weather = (Map<String, Object>) content.get("weather");
-        weatherLabel.setText(String.format("Weather: %s, %s", 
-            weather.get("temperature"), weather.get("condition")));
-        
-        Map<String, Object> traffic = (Map<String, Object>) content.get("traffic");
-        trafficLabel.setText(String.format("Traffic: %s (%s)", 
-            traffic.get("status"), traffic.get("travelTime")));
+        // Update content display
+        contentDisplay.updateContent(content, userName);
+    }
+    
+    private void requestLocationPermission() {
+        locationManager.requestLocationPermission();
+    }
+    
+    private void checkLocationStatus() {
+        locationManager.checkLocationStatus();
+    }
+    
+    public void refreshLocationStatus() {
+        locationManager.refreshLocationStatus();
     }
 } 
