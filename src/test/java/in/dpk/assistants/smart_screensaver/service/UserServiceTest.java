@@ -6,7 +6,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.AfterEach;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.File;
 import java.time.LocalTime;
@@ -16,7 +15,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
 class UserServiceTest {
 
     private UserService userService;
@@ -163,9 +161,13 @@ class UserServiceTest {
         newRoutine.setDescription("A test routine for testing");
         newRoutine.setStartTime(LocalTime.of(10, 0));
         newRoutine.setEndTime(LocalTime.of(18, 0));
-        newRoutine.setActiveDays(Arrays.asList(Routine.DayType.MONDAY, Routine.DayType.TUESDAY));
+        newRoutine.setActiveDays(Arrays.asList(
+            Routine.DayType.MONDAY, Routine.DayType.TUESDAY
+        ));
         newRoutine.setDayCategory(Routine.DayCategory.WORKDAY);
-        newRoutine.setActions(Arrays.asList(Routine.ActionType.SHOW_GREETING, Routine.ActionType.SHOW_TIME));
+        newRoutine.setActions(Arrays.asList(
+            Routine.ActionType.SHOW_GREETING, Routine.ActionType.SHOW_TIME
+        ));
         newRoutine.setShowWeather(true);
         newRoutine.setShowTime(true);
         newRoutine.setEnabled(true);
@@ -200,9 +202,13 @@ class UserServiceTest {
         updatedRoutine.setDescription("Updated description");
         updatedRoutine.setStartTime(LocalTime.of(9, 0));
         updatedRoutine.setEndTime(LocalTime.of(17, 0));
-        updatedRoutine.setActiveDays(Arrays.asList(Routine.DayType.MONDAY, Routine.DayType.WEDNESDAY, Routine.DayType.FRIDAY));
+        updatedRoutine.setActiveDays(Arrays.asList(
+            Routine.DayType.MONDAY, Routine.DayType.WEDNESDAY, Routine.DayType.FRIDAY
+        ));
         updatedRoutine.setDayCategory(Routine.DayCategory.WORKDAY);
-        updatedRoutine.setActions(Arrays.asList(Routine.ActionType.SHOW_GREETING, Routine.ActionType.SHOW_WEATHER));
+        updatedRoutine.setActions(Arrays.asList(
+            Routine.ActionType.SHOW_GREETING, Routine.ActionType.SHOW_WEATHER
+        ));
         updatedRoutine.setShowWeather(true);
         updatedRoutine.setShowTime(false);
         updatedRoutine.setEnabled(false);
@@ -264,7 +270,10 @@ class UserServiceTest {
         customRoutine.setDescription("Routine with custom message");
         customRoutine.setStartTime(LocalTime.of(8, 0));
         customRoutine.setEndTime(LocalTime.of(20, 0));
-        customRoutine.setActiveDays(Arrays.asList(Routine.DayType.MONDAY, Routine.DayType.TUESDAY, Routine.DayType.WEDNESDAY, Routine.DayType.THURSDAY, Routine.DayType.FRIDAY));
+        customRoutine.setActiveDays(Arrays.asList(
+            Routine.DayType.MONDAY, Routine.DayType.TUESDAY, Routine.DayType.WEDNESDAY,
+            Routine.DayType.THURSDAY, Routine.DayType.FRIDAY
+        ));
         customRoutine.setDayCategory(Routine.DayCategory.WORKDAY);
         customRoutine.setActions(Arrays.asList(Routine.ActionType.SHOW_CUSTOM_MESSAGE));
         customRoutine.setCustomMessage("Have a great day at work!");
@@ -289,7 +298,9 @@ class UserServiceTest {
         weekendRoutine.setEndTime(LocalTime.of(22, 0));
         weekendRoutine.setActiveDays(Arrays.asList(Routine.DayType.SATURDAY, Routine.DayType.SUNDAY));
         weekendRoutine.setDayCategory(Routine.DayCategory.WEEKEND);
-        weekendRoutine.setActions(Arrays.asList(Routine.ActionType.SHOW_GREETING, Routine.ActionType.SHOW_QUOTE));
+        weekendRoutine.setActions(Arrays.asList(
+            Routine.ActionType.SHOW_GREETING, Routine.ActionType.SHOW_QUOTE
+        ));
         weekendRoutine.setShowWeather(true);
         weekendRoutine.setShowTime(true);
         weekendRoutine.setEnabled(true);
@@ -317,7 +328,9 @@ class UserServiceTest {
             Routine.DayType.THURSDAY, Routine.DayType.FRIDAY, Routine.DayType.SATURDAY, Routine.DayType.SUNDAY
         ));
         anyDayRoutine.setDayCategory(Routine.DayCategory.ANY);
-        anyDayRoutine.setActions(Arrays.asList(Routine.ActionType.SHOW_GREETING, Routine.ActionType.SHOW_TIME, Routine.ActionType.SHOW_DATE));
+        anyDayRoutine.setActions(Arrays.asList(
+            Routine.ActionType.SHOW_GREETING, Routine.ActionType.SHOW_TIME, Routine.ActionType.SHOW_DATE
+        ));
         anyDayRoutine.setShowTime(true);
         anyDayRoutine.setShowDate(true);
         anyDayRoutine.setEnabled(true);

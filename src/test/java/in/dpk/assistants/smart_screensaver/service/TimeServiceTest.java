@@ -6,7 +6,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -14,7 +13,6 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
 class TimeServiceTest {
 
     private TimeService timeService;
@@ -162,7 +160,7 @@ class TimeServiceTest {
             Arguments.of(LocalDateTime.of(2024, 12, 31, 23, 59, 59), "2024-12-31 23:59:59"),
             Arguments.of(LocalDateTime.of(2024, 6, 15, 14, 30, 45), "2024-06-15 14:30:45"),
             Arguments.of(LocalDateTime.of(2024, 2, 29, 12, 0, 0), "2024-02-29 12:00:00"),
-            Arguments.of(LocalDateTime.of(2024, 7, 4, 18, 30, 15), "2024-07-04 18:30:15")
+            Arguments.of(LocalDateTime.of(2024, 6, 4, 18, 30, 15), "2024-06-04 18:30:15")
         );
     }
 
