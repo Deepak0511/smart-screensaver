@@ -1,11 +1,11 @@
 package in.dpk.assistants.smart_screensaver.config;
 
-import in.dpk.assistants.smart_screensaver.entity.Routine;
 import in.dpk.assistants.smart_screensaver.entity.UserPreference;
-import in.dpk.assistants.smart_screensaver.repository.RoutineRepository;
+import in.dpk.assistants.smart_screensaver.entity.Routine;
 import in.dpk.assistants.smart_screensaver.repository.UserPreferenceRepository;
-import lombok.RequiredArgsConstructor;
+import in.dpk.assistants.smart_screensaver.repository.RoutineRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -14,54 +14,79 @@ import java.util.Arrays;
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
-    
-    private final UserPreferenceRepository userPreferenceRepository;
-    private final RoutineRepository routineRepository;
-    
+
+    @Autowired
+    private UserPreferenceRepository userPreferenceRepository;
+
+    @Autowired
+    private RoutineRepository routineRepository;
+
     @Override
     public void run(String... args) throws Exception {
-        log.info("Initializing sample data...");
+        log.info("Starting data initialization...");
         
-        // Create default user preferences
-        if (userPreferenceRepository.findByUserId("default").isEmpty()) {
-            UserPreference userPref = new UserPreference();
-            userPref.setUserId("default");
-            userPref.setDisplayName("User");
-            userPref.setTimezone("Asia/Kolkata");
-            userPref.setTheme("dark");
-            userPref.setRefreshInterval(30);
-            userPref.setCommuteMode("bus");
-            userPref.setWorkAddress("Bangalore, India");
-            userPref.setHomeAddress("Bangalore, India");
-            
-            userPreferenceRepository.save(userPref);
-            log.info("Created default user preferences");
+        // Initialize user preferences if not exists
+        if (userPreferenceRepository.count() == 0) {
+            log.info("No user preferences found, creating default user");
+            createDefaultUserPreference();
+        } else {
+            log.info("User preferences already exist in database");
         }
         
-        // Create sample routines
+        // Initialize routines if not exists
         if (routineRepository.count() == 0) {
-            createSampleRoutines();
-            log.info("Created sample routines");
+            log.info("No routines found, creating default routines");
+            createDefaultRoutines();
+        } else {
+            log.info("Routines already exist in database");
         }
+        
+        log.info("Data initialization completed successfully");
     }
     
-    private void createSampleRoutines() {
-        // Morning routine (6 AM - 9 AM)
-        Routine morningRoutine = new Routine();
-        morningRoutine.setName("Morning Routine");
-        morningRoutine.setDescription("Good morning routine for weekdays");
-        morningRoutine.setStartTime(LocalTime.of(6, 0));
-        morningRoutine.setEndTime(LocalTime.of(9, 0));
-        morningRoutine.setActiveDays(Arrays.asList(
+    private void createDefaultUserPreference() {
+        UserPreference preference = new UserPreference();
+        preference.setUserId("default");
+        preference.setDisplayName("User");
+        preference.setTimezone("Asia/Kolkata");
+        preference.setTheme("dark");
+        preference.setRefreshInterval(30);
+        preference.setCommuteMode("bus");
+        preference.setWorkAddress("Bangalore, India");
+        preference.setHomeAddress("Bangalore, India");
+        preference.setEnableNotifications(true);
+        preference.setEnableLocationServices(false);
+        
+        UserPreference savedPreference = userPreferenceRepository.save(preference);
+        log.info("Created default user preference: {}", savedPreference.getDisplayName());
+    }
+    
+    private void createDefaultRoutines() {
+        List<Routine> routines = Arrays.asList(
+            createMorningRoutine(),
+            createEveningRoutine(),
+            createWeekendRoutine()
+        );
+        
+        List<Routine> savedRoutines = routineRepository.saveAll(routines);
+        log.info("Created {} default routines", savedRoutines.size());
+    }
+    
+    private Routine createMorningRoutine() {
+        Routine routine = new Routine();
+        routine.setName("Morning Routine");
+        routine.setDescription("Good morning routine for weekdays");
+        routine.setStartTime(LocalTime.of(6, 0));
+        routine.setEndTime(LocalTime.of(9, 0));
+        routine.setActiveDays(Arrays.asList(
             Routine.DayType.MONDAY, Routine.DayType.TUESDAY, 
             Routine.DayType.WEDNESDAY, Routine.DayType.THURSDAY, 
             Routine.DayType.FRIDAY
         ));
-        morningRoutine.setDayCategory(Routine.DayCategory.WORKDAY);
-        morningRoutine.setActions(Arrays.asList(
+        routine.setDayCategory(Routine.DayCategory.WORKDAY);
+        routine.setActions(Arrays.asList(
             Routine.ActionType.SHOW_GREETING,
             Routine.ActionType.SHOW_TIME,
             Routine.ActionType.SHOW_DATE,
@@ -69,84 +94,66 @@ public class DataInitializer implements CommandLineRunner {
             Routine.ActionType.SHOW_WEATHER,
             Routine.ActionType.SHOW_TRAFFIC
         ));
-        morningRoutine.setShowWeather(true);
-        morningRoutine.setShowTraffic(true);
-        morningRoutine.setShowTime(true);
-        morningRoutine.setShowDate(true);
-        morningRoutine.setEnabled(true);
-        morningRoutine.setPriority(1);
+        routine.setShowWeather(true);
+        routine.setShowTraffic(true);
+        routine.setShowTime(true);
+        routine.setShowDate(true);
+        routine.setEnabled(true);
+        routine.setPriority(1);
         
-        // Afternoon routine (12 PM - 2 PM)
-        Routine afternoonRoutine = new Routine();
-        afternoonRoutine.setName("Afternoon Routine");
-        afternoonRoutine.setDescription("Lunch break routine");
-        afternoonRoutine.setStartTime(LocalTime.of(12, 0));
-        afternoonRoutine.setEndTime(LocalTime.of(14, 0));
-        afternoonRoutine.setActiveDays(Arrays.asList(
+        return routine;
+    }
+    
+    private Routine createEveningRoutine() {
+        Routine routine = new Routine();
+        routine.setName("Evening Routine");
+        routine.setDescription("Evening routine with traffic info");
+        routine.setStartTime(LocalTime.of(17, 0));
+        routine.setEndTime(LocalTime.of(20, 0));
+        routine.setActiveDays(Arrays.asList(
             Routine.DayType.MONDAY, Routine.DayType.TUESDAY, 
             Routine.DayType.WEDNESDAY, Routine.DayType.THURSDAY, 
             Routine.DayType.FRIDAY
         ));
-        afternoonRoutine.setDayCategory(Routine.DayCategory.WORKDAY);
-        afternoonRoutine.setActions(Arrays.asList(
-            Routine.ActionType.SHOW_GREETING,
-            Routine.ActionType.SHOW_TIME,
-            Routine.ActionType.SHOW_QUOTE
-        ));
-        afternoonRoutine.setShowTime(true);
-        afternoonRoutine.setEnabled(true);
-        afternoonRoutine.setPriority(2);
-        
-        // Evening routine (5 PM - 8 PM)
-        Routine eveningRoutine = new Routine();
-        eveningRoutine.setName("Evening Routine");
-        eveningRoutine.setDescription("Evening routine with traffic info");
-        eveningRoutine.setStartTime(LocalTime.of(17, 0));
-        eveningRoutine.setEndTime(LocalTime.of(20, 0));
-        eveningRoutine.setActiveDays(Arrays.asList(
-            Routine.DayType.MONDAY, Routine.DayType.TUESDAY, 
-            Routine.DayType.WEDNESDAY, Routine.DayType.THURSDAY, 
-            Routine.DayType.FRIDAY
-        ));
-        eveningRoutine.setDayCategory(Routine.DayCategory.WORKDAY);
-        eveningRoutine.setActions(Arrays.asList(
+        routine.setDayCategory(Routine.DayCategory.WORKDAY);
+        routine.setActions(Arrays.asList(
             Routine.ActionType.SHOW_GREETING,
             Routine.ActionType.SHOW_TIME,
             Routine.ActionType.SHOW_TRAFFIC,
             Routine.ActionType.SHOW_WEATHER
         ));
-        eveningRoutine.setShowTraffic(true);
-        eveningRoutine.setShowWeather(true);
-        eveningRoutine.setShowTime(true);
-        eveningRoutine.setEnabled(true);
-        eveningRoutine.setPriority(1);
+        routine.setShowTraffic(true);
+        routine.setShowWeather(true);
+        routine.setShowTime(true);
+        routine.setEnabled(true);
+        routine.setPriority(1);
         
-        // Weekend routine
-        Routine weekendRoutine = new Routine();
-        weekendRoutine.setName("Weekend Routine");
-        weekendRoutine.setDescription("Relaxed weekend routine");
-        weekendRoutine.setStartTime(LocalTime.of(8, 0));
-        weekendRoutine.setEndTime(LocalTime.of(22, 0));
-        weekendRoutine.setActiveDays(Arrays.asList(
+        return routine;
+    }
+    
+    private Routine createWeekendRoutine() {
+        Routine routine = new Routine();
+        routine.setName("Weekend Routine");
+        routine.setDescription("Relaxed weekend routine");
+        routine.setStartTime(LocalTime.of(8, 0));
+        routine.setEndTime(LocalTime.of(22, 0));
+        routine.setActiveDays(Arrays.asList(
             Routine.DayType.SATURDAY, Routine.DayType.SUNDAY
         ));
-        weekendRoutine.setDayCategory(Routine.DayCategory.WEEKEND);
-        weekendRoutine.setActions(Arrays.asList(
+        routine.setDayCategory(Routine.DayCategory.WEEKEND);
+        routine.setActions(Arrays.asList(
             Routine.ActionType.SHOW_GREETING,
             Routine.ActionType.SHOW_TIME,
             Routine.ActionType.SHOW_DATE,
             Routine.ActionType.SHOW_QUOTE,
             Routine.ActionType.SHOW_WEATHER
         ));
-        weekendRoutine.setShowWeather(true);
-        weekendRoutine.setShowTime(true);
-        weekendRoutine.setShowDate(true);
-        weekendRoutine.setEnabled(true);
-        weekendRoutine.setPriority(3);
+        routine.setShowWeather(true);
+        routine.setShowTime(true);
+        routine.setShowDate(true);
+        routine.setEnabled(true);
+        routine.setPriority(3);
         
-        // Save all routines
-        routineRepository.saveAll(Arrays.asList(
-            morningRoutine, afternoonRoutine, eveningRoutine, weekendRoutine
-        ));
+        return routine;
     }
 } 

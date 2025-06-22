@@ -6,8 +6,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.AfterEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 
-import java.io.File;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
@@ -15,28 +17,20 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SpringBootTest
+@TestPropertySource(properties = {
+    "spring.datasource.url=jdbc:h2:mem:testdb",
+    "spring.jpa.hibernate.ddl-auto=create-drop"
+})
 class UserServiceTest {
 
+    @Autowired
     private UserService userService;
-    private static final String TEST_DATA_FILE = "screensaver_data.json";
-    private static final String TEST_ROUTINES_FILE = "routines_data.json";
 
     @BeforeEach
     void setUp() {
-        // Clean up any existing test files
-        cleanupTestFiles();
-        
-        userService = new UserService();
-    }
-
-    @AfterEach
-    void tearDown() {
-        cleanupTestFiles();
-    }
-
-    private void cleanupTestFiles() {
-        new File(TEST_DATA_FILE).delete();
-        new File(TEST_ROUTINES_FILE).delete();
+        // The database will be automatically initialized by DataInitializer
+        // No need to manually clean up since we're using in-memory database
     }
 
     @Test
@@ -64,6 +58,7 @@ class UserServiceTest {
         
         // Create updated preference
         UserPreference updatedPreference = new UserPreference();
+        updatedPreference.setId(originalPreference.getId()); // Keep the same ID
         updatedPreference.setUserId("test-user");
         updatedPreference.setDisplayName("Test User");
         updatedPreference.setTimezone("America/New_York");
@@ -345,8 +340,8 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("Should persist data to files")
-    void shouldPersistDataToFiles() {
+    @DisplayName("Should persist data to database")
+    void shouldPersistDataToDatabase() {
         // Update user preference
         UserPreference userPreference = userService.getUserPreference();
         userPreference.setDisplayName("Test User");
@@ -366,11 +361,13 @@ class UserServiceTest {
         
         userService.createRoutine(newRoutine);
         
-        // Verify files exist
-        File dataFile = new File("screensaver_data.json");
-        File routinesFile = new File("routines_data.json");
+        // Verify data is persisted by retrieving it
+        UserPreference retrievedPreference = userService.getUserPreference();
+        assertEquals("Test User", retrievedPreference.getDisplayName());
         
-        assertTrue(dataFile.exists());
-        assertTrue(routinesFile.exists());
+        List<Routine> allRoutines = userService.getAllRoutines();
+        boolean foundTestRoutine = allRoutines.stream()
+                .anyMatch(r -> r.getName().equals("Persistent Test Routine"));
+        assertTrue(foundTestRoutine);
     }
 } 

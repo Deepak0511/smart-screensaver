@@ -2,7 +2,10 @@ package in.dpk.assistants.smart_screensaver.service;
 
 import in.dpk.assistants.smart_screensaver.entity.UserPreference;
 import in.dpk.assistants.smart_screensaver.entity.Routine;
+import in.dpk.assistants.smart_screensaver.repository.UserPreferenceRepository;
+import in.dpk.assistants.smart_screensaver.repository.RoutineRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
@@ -19,227 +22,108 @@ public class UserService {
     
     private static final String DATA_FILE = "screensaver_data.json";
     private static final String ROUTINES_FILE = "routines_data.json";
+    private static final String DEFAULT_USER_ID = "default";
     
-    private UserPreference userPreference;
-    private List<Routine> routines = new ArrayList<>();
+    @Autowired
+    private UserPreferenceRepository userPreferenceRepository;
+    
+    @Autowired
+    private RoutineRepository routineRepository;
+    
     private ObjectMapper objectMapper = new ObjectMapper();
     
     public UserService() {
         // Configure ObjectMapper for Java 8 time types
         objectMapper.registerModule(new JavaTimeModule());
-        loadData();
-        if (userPreference == null) {
-            initializeDefaultData();
-        }
-    }
-    
-    private void loadData() {
-        try {
-            // Load user preferences
-            File userFile = new File(DATA_FILE);
-            if (userFile.exists()) {
-                userPreference = objectMapper.readValue(userFile, UserPreference.class);
-                log.info("Loaded user preferences from file");
-            }
-            
-            // Load routines
-            File routinesFile = new File(ROUTINES_FILE);
-            if (routinesFile.exists()) {
-                CollectionType listType = objectMapper.getTypeFactory()
-                    .constructCollectionType(ArrayList.class, Routine.class);
-                routines = objectMapper.readValue(routinesFile, listType);
-                log.info("Loaded {} routines from file", routines.size());
-            }
-        } catch (IOException e) {
-            log.error("Error loading data from file", e);
-        }
-    }
-    
-    private void saveData() {
-        try {
-            // Save user preferences
-            if (userPreference != null) {
-                objectMapper.writeValue(new File(DATA_FILE), userPreference);
-            }
-            
-            // Save routines
-            objectMapper.writeValue(new File(ROUTINES_FILE), routines);
-            
-            log.info("Data saved to file successfully");
-        } catch (IOException e) {
-            log.error("Error saving data to file", e);
-        }
-    }
-    
-    private void initializeDefaultData() {
-        // Initialize default user preferences
-        userPreference = new UserPreference();
-        userPreference.setUserId("default");
-        userPreference.setDisplayName("User");
-        userPreference.setTimezone("Asia/Kolkata");
-        userPreference.setTheme("dark");
-        userPreference.setRefreshInterval(30);
-        userPreference.setCommuteMode("bus");
-        userPreference.setWorkAddress("Bangalore, India");
-        userPreference.setHomeAddress("Bangalore, India");
-        userPreference.setEnableNotifications(true);
-        userPreference.setEnableLocationServices(false);
-        
-        // Initialize sample routines
-        createSampleRoutines();
-        
-        // Save default data
-        saveData();
-    }
-    
-    private void createSampleRoutines() {
-        // Morning routine (6 AM - 9 AM)
-        Routine morningRoutine = new Routine();
-        morningRoutine.setId(1L);
-        morningRoutine.setName("Morning Routine");
-        morningRoutine.setDescription("Good morning routine for weekdays");
-        morningRoutine.setStartTime(LocalTime.of(6, 0));
-        morningRoutine.setEndTime(LocalTime.of(9, 0));
-        morningRoutine.setActiveDays(Arrays.asList(
-            Routine.DayType.MONDAY, Routine.DayType.TUESDAY, 
-            Routine.DayType.WEDNESDAY, Routine.DayType.THURSDAY, 
-            Routine.DayType.FRIDAY
-        ));
-        morningRoutine.setDayCategory(Routine.DayCategory.WORKDAY);
-        morningRoutine.setActions(Arrays.asList(
-            Routine.ActionType.SHOW_GREETING,
-            Routine.ActionType.SHOW_TIME,
-            Routine.ActionType.SHOW_DATE,
-            Routine.ActionType.SHOW_QUOTE,
-            Routine.ActionType.SHOW_WEATHER,
-            Routine.ActionType.SHOW_TRAFFIC
-        ));
-        morningRoutine.setShowWeather(true);
-        morningRoutine.setShowTraffic(true);
-        morningRoutine.setShowTime(true);
-        morningRoutine.setShowDate(true);
-        morningRoutine.setEnabled(true);
-        morningRoutine.setPriority(1);
-        
-        // Evening routine (5 PM - 8 PM)
-        Routine eveningRoutine = new Routine();
-        eveningRoutine.setId(2L);
-        eveningRoutine.setName("Evening Routine");
-        eveningRoutine.setDescription("Evening routine with traffic info");
-        eveningRoutine.setStartTime(LocalTime.of(17, 0));
-        eveningRoutine.setEndTime(LocalTime.of(20, 0));
-        eveningRoutine.setActiveDays(Arrays.asList(
-            Routine.DayType.MONDAY, Routine.DayType.TUESDAY, 
-            Routine.DayType.WEDNESDAY, Routine.DayType.THURSDAY, 
-            Routine.DayType.FRIDAY
-        ));
-        eveningRoutine.setDayCategory(Routine.DayCategory.WORKDAY);
-        eveningRoutine.setActions(Arrays.asList(
-            Routine.ActionType.SHOW_GREETING,
-            Routine.ActionType.SHOW_TIME,
-            Routine.ActionType.SHOW_TRAFFIC,
-            Routine.ActionType.SHOW_WEATHER
-        ));
-        eveningRoutine.setShowTraffic(true);
-        eveningRoutine.setShowWeather(true);
-        eveningRoutine.setShowTime(true);
-        eveningRoutine.setEnabled(true);
-        eveningRoutine.setPriority(1);
-        
-        // Weekend routine
-        Routine weekendRoutine = new Routine();
-        weekendRoutine.setId(3L);
-        weekendRoutine.setName("Weekend Routine");
-        weekendRoutine.setDescription("Relaxed weekend routine");
-        weekendRoutine.setStartTime(LocalTime.of(8, 0));
-        weekendRoutine.setEndTime(LocalTime.of(22, 0));
-        weekendRoutine.setActiveDays(Arrays.asList(
-            Routine.DayType.SATURDAY, Routine.DayType.SUNDAY
-        ));
-        weekendRoutine.setDayCategory(Routine.DayCategory.WEEKEND);
-        weekendRoutine.setActions(Arrays.asList(
-            Routine.ActionType.SHOW_GREETING,
-            Routine.ActionType.SHOW_TIME,
-            Routine.ActionType.SHOW_DATE,
-            Routine.ActionType.SHOW_QUOTE,
-            Routine.ActionType.SHOW_WEATHER
-        ));
-        weekendRoutine.setShowWeather(true);
-        weekendRoutine.setShowTime(true);
-        weekendRoutine.setShowDate(true);
-        weekendRoutine.setEnabled(true);
-        weekendRoutine.setPriority(3);
-        
-        routines.addAll(Arrays.asList(morningRoutine, eveningRoutine, weekendRoutine));
     }
     
     // User Preference methods
     public UserPreference getUserPreference() {
-        return userPreference;
+        try {
+            return userPreferenceRepository.findByUserId(DEFAULT_USER_ID)
+                    .orElse(null);
+        } catch (Exception e) {
+            log.error("Error getting user preference from database: {}", e.getMessage(), e);
+            return null;
+        }
     }
     
     public UserPreference updateUserPreference(UserPreference updatedPreference) {
-        this.userPreference = updatedPreference;
-        saveData();
-        log.info("User preferences updated: {}", updatedPreference.getDisplayName());
-        return userPreference;
+        try {
+            UserPreference savedPreference = userPreferenceRepository.save(updatedPreference);
+            log.info("User preferences updated in database: {}", savedPreference.getDisplayName());
+            return savedPreference;
+        } catch (Exception e) {
+            log.error("Error updating user preference in database: {}", e.getMessage(), e);
+            return null;
+        }
     }
     
     // Routine methods
     public List<Routine> getAllRoutines() {
-        return new ArrayList<>(routines);
+        try {
+            return new ArrayList<>(routineRepository.findAll());
+        } catch (Exception e) {
+            log.error("Error getting routines from database: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
     }
     
     public List<Routine> getEnabledRoutines() {
-        return routines.stream()
-                .filter(Routine::isEnabled)
-                .sorted((r1, r2) -> Integer.compare(r2.getPriority(), r1.getPriority()))
-                .toList();
+        try {
+            return routineRepository.findByEnabledTrueOrderByPriorityDescWithActions();
+        } catch (Exception e) {
+            log.error("Error getting enabled routines from database: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
     }
     
     public Routine getRoutineById(Long id) {
-        return routines.stream()
-                .filter(routine -> routine.getId().equals(id))
-                .findFirst()
-                .orElse(null);
+        try {
+            return routineRepository.findById(id).orElse(null);
+        } catch (Exception e) {
+            log.error("Error getting routine by ID from database: {}", e.getMessage(), e);
+            return null;
+        }
     }
     
     public Routine createRoutine(Routine routine) {
-        routine.setId(generateNextId());
-        routines.add(routine);
-        saveData();
-        log.info("Created new routine: {}", routine.getName());
-        return routine;
+        try {
+            Routine savedRoutine = routineRepository.save(routine);
+            log.info("Routine created in database: {}", savedRoutine.getName());
+            return savedRoutine;
+        } catch (Exception e) {
+            log.error("Error creating routine in database: {}", e.getMessage(), e);
+            return null;
+        }
     }
     
     public Routine updateRoutine(Long id, Routine updatedRoutine) {
-        Routine existingRoutine = getRoutineById(id);
-        if (existingRoutine != null) {
-            updatedRoutine.setId(id);
-            routines.remove(existingRoutine);
-            routines.add(updatedRoutine);
-            saveData();
-            log.info("Updated routine: {}", updatedRoutine.getName());
-            return updatedRoutine;
+        try {
+            if (routineRepository.existsById(id)) {
+                updatedRoutine.setId(id);
+                Routine savedRoutine = routineRepository.save(updatedRoutine);
+                log.info("Routine updated in database: {}", savedRoutine.getName());
+                return savedRoutine;
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("Error updating routine in database: {}", e.getMessage(), e);
+            return null;
         }
-        return null;
     }
     
     public boolean deleteRoutine(Long id) {
-        Routine routine = getRoutineById(id);
-        if (routine != null) {
-            routines.remove(routine);
-            saveData();
-            log.info("Deleted routine: {}", routine.getName());
-            return true;
+        try {
+            if (routineRepository.existsById(id)) {
+                routineRepository.deleteById(id);
+                log.info("Routine deleted from database: {}", id);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            log.error("Error deleting routine from database: {}", e.getMessage(), e);
+            return false;
         }
-        return false;
-    }
-    
-    private Long generateNextId() {
-        return routines.stream()
-                .mapToLong(Routine::getId)
-                .max()
-                .orElse(0) + 1;
     }
 } 

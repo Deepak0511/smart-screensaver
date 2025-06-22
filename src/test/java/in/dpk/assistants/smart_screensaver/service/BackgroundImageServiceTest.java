@@ -12,13 +12,17 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import in.dpk.assistants.smart_screensaver.entity.UserPreference;
+
 class BackgroundImageServiceTest {
 
     private BackgroundImageService backgroundImageService;
+    private UserService userService;
 
     @BeforeEach
     void setUp() {
         backgroundImageService = new BackgroundImageService();
+        userService = new UserService();
     }
 
     @Test
@@ -149,5 +153,15 @@ class BackgroundImageServiceTest {
             assertTrue(result.contains("unsplash.com"));
             assertTrue(result.contains("w=1920&h=1080&fit=crop&crop=center"));
         }
+    }
+
+    @Test
+    @DisplayName("Should initialize with default user preferences")
+    void shouldInitializeWithDefaultUserPreferences() {
+        UserPreference userPreference = userService.getUserPreference();
+        assertNotNull(userPreference);
+        assertEquals("default", userPreference.getUserId());
+        assertEquals("User", userPreference.getDisplayName());
+        // ...other assertions
     }
 } 
