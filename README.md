@@ -59,7 +59,7 @@ A browser-based smart screensaver application built with Java Spring Boot and Va
 - **ScreensaverService**: Main orchestrator for screensaver content
 - **ExternalDataService**: Handles all external API calls with fallback support
 - **LocationService**: Manages location detection with IP-based fallback and reverse geocoding
-- **BackgroundService**: Provides time-based background images
+- **BackgroundImageService**: Provides time-based background images
 - **GreetingService**: Generates personalized time-based greetings
 - **TimeService**: Handles time and date formatting
 - **UserService**: Manages user preferences and data persistence

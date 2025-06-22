@@ -5,7 +5,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.PageTitle;
 import in.dpk.assistants.smart_screensaver.service.ScreensaverService;
 import in.dpk.assistants.smart_screensaver.service.UserService;
-import in.dpk.assistants.smart_screensaver.service.BackgroundService;
+import in.dpk.assistants.smart_screensaver.service.BackgroundImageService;
 import in.dpk.assistants.smart_screensaver.service.GreetingService;
 import in.dpk.assistants.smart_screensaver.service.LocationService;
 import in.dpk.assistants.smart_screensaver.ui.components.BackgroundContainer;
@@ -27,7 +27,7 @@ public class ScreensaverView extends VerticalLayout {
     // Services
     private final ScreensaverService screensaverService;
     private final UserService userService;
-    private final BackgroundService backgroundService;
+    private final BackgroundImageService backgroundImageService;
     private final GreetingService greetingService;
     private final LocationService locationService;
     
@@ -38,11 +38,11 @@ public class ScreensaverView extends VerticalLayout {
     private final LocationManager locationManager;
     
     public ScreensaverView(ScreensaverService screensaverService, UserService userService, 
-                          BackgroundService backgroundService, GreetingService greetingService,
+                          BackgroundImageService backgroundImageService, GreetingService greetingService,
                           LocationService locationService) {
         this.screensaverService = screensaverService;
         this.userService = userService;
-        this.backgroundService = backgroundService;
+        this.backgroundImageService = backgroundImageService;
         this.greetingService = greetingService;
         this.locationService = locationService;
         
@@ -86,7 +86,7 @@ public class ScreensaverView extends VerticalLayout {
     
     private void updateBackground() {
         LocalTime now = LocalTime.now();
-        String backgroundImage = backgroundService.getBackgroundImageForTime(now);
+        String backgroundImage = backgroundImageService.getBackgroundImageForTime(now);
         backgroundContainer.setBackgroundImage(backgroundImage);
     }
     

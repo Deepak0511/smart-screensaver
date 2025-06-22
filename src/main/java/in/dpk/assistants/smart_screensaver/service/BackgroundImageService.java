@@ -6,7 +6,7 @@ import java.time.LocalTime;
 
 @Service
 @Slf4j
-public class BackgroundService {
+public class BackgroundImageService {
     
     private static final String SUNRISE_IMAGE = "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1920&h=1080&fit=crop&crop=center";
     private static final String MORNING_IMAGE = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&h=1080&fit=crop&crop=center";
