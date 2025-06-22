@@ -11,6 +11,8 @@ import in.dpk.assistants.smart_screensaver.config.ExternalApiConfig;
 import java.util.Map;
 import java.util.HashMap;
 import java.time.LocalDateTime;
+import java.time.Duration;
+import java.util.Random;
 
 @Service
 @Slf4j
@@ -20,15 +22,25 @@ public class ExternalDataService {
     private final ObjectMapper objectMapper;
     private final ExternalApiConfig apiConfig;
     private final LocationService locationService;
+    private final SystemSettingsService systemSettingsService;
+    private final Random random = new Random();
     
-    public ExternalDataService(WebClient webClient, ExternalApiConfig apiConfig, LocationService locationService) {
+    public ExternalDataService(WebClient webClient, ExternalApiConfig apiConfig, 
+                             LocationService locationService, SystemSettingsService systemSettingsService) {
         this.webClient = webClient;
         this.apiConfig = apiConfig;
         this.locationService = locationService;
+        this.systemSettingsService = systemSettingsService;
         this.objectMapper = new ObjectMapper();
     }
     
     public Map<String, Object> getWeatherInfo() {
+        // Check if weather API is enabled
+        if (!systemSettingsService.isApiEnabled("weather")) {
+            log.info("Weather API is disabled, using fallback data");
+            return createEmptyWeatherData();
+        }
+        
         try {
             // Get current location first
             Map<String, Object> location = locationService.getLocationInfo();
@@ -40,14 +52,22 @@ public class ExternalDataService {
             double latitude = Double.parseDouble(location.get("latitude").toString());
             double longitude = Double.parseDouble(location.get("longitude").toString());
             
-            // Fetch weather data from Open-Meteo API
+            // Get weather API URL from system settings
+            String weatherApiUrl = systemSettingsService.getApiUrl("weather");
+            if (weatherApiUrl == null || weatherApiUrl.trim().isEmpty()) {
+                log.warn("Weather API URL not configured, using fallback data");
+                return createEmptyWeatherData();
+            }
+            
+            // Fetch weather data from configured API
             String weatherUrl = String.format("%s?latitude=%.4f&longitude=%.4f&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto",
-                    apiConfig.getWeatherApiUrl(), latitude, longitude);
+                    weatherApiUrl, latitude, longitude);
             
             String response = webClient.get()
                     .uri(weatherUrl)
                     .retrieve()
                     .bodyToMono(String.class)
+                    .timeout(Duration.ofSeconds(systemSettingsService.getApiTimeout()))
                     .block();
             
             if (response != null) {
@@ -68,10 +88,21 @@ public class ExternalDataService {
             log.error("Error fetching weather data: {}", e.getMessage());
         }
         
+        // Return fallback data if API fails and fallback mode is enabled
+        if (systemSettingsService.isFallbackModeEnabled()) {
+            return createFallbackWeatherData();
+        }
+        
         return createEmptyWeatherData();
     }
     
     public Map<String, Object> getTrafficInfo() {
+        // Check if traffic API is enabled
+        if (!systemSettingsService.isApiEnabled("traffic")) {
+            log.info("Traffic API is disabled, using fallback data");
+            return createFallbackTrafficData();
+        }
+        
         try {
             // Get current location
             Map<String, Object> location = locationService.getLocationInfo();
@@ -112,59 +143,131 @@ public class ExternalDataService {
             log.error("Error generating traffic data: {}", e.getMessage());
         }
         
+        // Return fallback data if API fails and fallback mode is enabled
+        if (systemSettingsService.isFallbackModeEnabled()) {
+            return createFallbackTrafficData();
+        }
+        
         return createEmptyTrafficData();
     }
     
     public Map<String, Object> getQuoteOfTheDay() {
-        // Try multiple quote APIs in case one fails
-        String[] quoteApis = {
-            "https://api.quotable.io/random",
-            "https://zenquotes.io/api/random",
-            "https://quotes.rest/qod"
+        // Check if quote API is enabled
+        if (!systemSettingsService.isApiEnabled("quote")) {
+            log.info("Quote API is disabled, using fallback quotes");
+            return getFallbackQuote();
+        }
+        
+        // Get quote API URL from system settings
+        String quoteApiUrl = systemSettingsService.getApiUrl("quote");
+        if (quoteApiUrl == null || quoteApiUrl.trim().isEmpty()) {
+            log.warn("Quote API URL not configured, using fallback quotes");
+            return getFallbackQuote();
+        }
+        
+        // Use more reliable quote APIs with better error handling
+        QuoteApi[] quoteApis = {
+            new QuoteApi(quoteApiUrl, "quotable"),
+            new QuoteApi("https://zenquotes.io/api/random", "zenquotes"),
+            new QuoteApi("https://api.goprogram.ai/inspiration", "goprogram")
         };
         
-        for (String apiUrl : quoteApis) {
+        for (QuoteApi api : quoteApis) {
             try {
+                log.debug("Attempting to fetch quote from: {}", api.url);
+                
                 String response = webClient.get()
-                        .uri(apiUrl)
+                        .uri(api.url)
                         .retrieve()
                         .bodyToMono(String.class)
+                        .timeout(Duration.ofSeconds(systemSettingsService.getApiTimeout()))
                         .block();
                 
-                if (response != null) {
+                if (response != null && !response.trim().isEmpty()) {
                     JsonNode quoteData = objectMapper.readTree(response);
-                    Map<String, Object> quote = new HashMap<>();
+                    Map<String, Object> quote = parseQuoteResponse(quoteData, api.type);
                     
-                    // Handle different API response formats
-                    if (apiUrl.contains("quotable.io")) {
-                        quote.put("text", quoteData.get("content").asText());
-                        quote.put("author", quoteData.get("author").asText());
-                        quote.put("category", quoteData.get("tags").get(0).asText());
-                    } else if (apiUrl.contains("zenquotes.io")) {
-                        JsonNode firstQuote = quoteData.get(0);
-                        quote.put("text", firstQuote.get("q").asText());
-                        quote.put("author", firstQuote.get("a").asText());
-                        quote.put("category", "Inspiration");
-                    } else if (apiUrl.contains("quotes.rest")) {
-                        JsonNode contents = quoteData.get("contents");
-                        JsonNode firstQuote = contents.get("quotes").get(0);
-                        quote.put("text", firstQuote.get("quote").asText());
-                        quote.put("author", firstQuote.get("author").asText());
-                        quote.put("category", firstQuote.get("category").asText());
+                    if (quote != null && quote.get("text") != null && !quote.get("text").toString().isEmpty()) {
+                        log.info("Quote fetched successfully from {}: {}", api.url, quote.get("text"));
+                        return quote;
                     }
-                    
-                    log.info("Quote fetched successfully from {}: {}", apiUrl, quote.get("text"));
-                    return quote;
                 }
+            } catch (WebClientResponseException e) {
+                log.warn("HTTP error fetching quote from {}: {} - {}", api.url, e.getStatusCode(), e.getMessage());
             } catch (Exception e) {
-                log.warn("Failed to fetch quote from {}: {}", apiUrl, e.getMessage());
-                continue; // Try next API
+                log.warn("Failed to fetch quote from {}: {}", api.url, e.getMessage());
             }
         }
         
-        // If all APIs fail, return empty quote data
-        log.warn("All quote APIs failed, returning empty data");
-        return createEmptyQuoteData();
+        // If all APIs fail, return a fallback quote
+        log.warn("All quote APIs failed, using fallback quote");
+        return getFallbackQuote();
+    }
+    
+    private Map<String, Object> parseQuoteResponse(JsonNode quoteData, String apiType) {
+        Map<String, Object> quote = new HashMap<>();
+        
+        try {
+            switch (apiType) {
+                case "quotable":
+                    if (quoteData.has("content") && quoteData.has("author")) {
+                        quote.put("text", quoteData.get("content").asText());
+                        quote.put("author", quoteData.get("author").asText());
+                        quote.put("category", quoteData.has("tags") && quoteData.get("tags").isArray() && quoteData.get("tags").size() > 0 
+                                ? quoteData.get("tags").get(0).asText() : "Inspiration");
+                    }
+                    break;
+                    
+                case "zenquotes":
+                    if (quoteData.isArray() && quoteData.size() > 0) {
+                        JsonNode firstQuote = quoteData.get(0);
+                        if (firstQuote.has("q") && firstQuote.has("a")) {
+                            quote.put("text", firstQuote.get("q").asText());
+                            quote.put("author", firstQuote.get("a").asText());
+                            quote.put("category", "Inspiration");
+                        }
+                    }
+                    break;
+                    
+                case "goprogram":
+                    if (quoteData.has("quote") && quoteData.has("author")) {
+                        quote.put("text", quoteData.get("quote").asText());
+                        quote.put("author", quoteData.get("author").asText());
+                        quote.put("category", "Inspiration");
+                    }
+                    break;
+            }
+        } catch (Exception e) {
+            log.warn("Error parsing quote response from {}: {}", apiType, e.getMessage());
+            return null;
+        }
+        
+        return quote;
+    }
+    
+    private Map<String, Object> getFallbackQuote() {
+        // Expanded fallback quotes
+        String[][] fallbackQuotes = {
+            {"The only way to do great work is to love what you do.", "Steve Jobs", "Inspiration"},
+            {"Life is what happens when you're busy making other plans.", "John Lennon", "Life"},
+            {"The future belongs to those who believe in the beauty of their dreams.", "Eleanor Roosevelt", "Dreams"},
+            {"Success is not final, failure is not fatal: it is the courage to continue that counts.", "Winston Churchill", "Success"},
+            {"The journey of a thousand miles begins with one step.", "Lao Tzu", "Wisdom"},
+            {"Be the change you wish to see in the world.", "Mahatma Gandhi", "Change"},
+            {"In the middle of difficulty lies opportunity.", "Albert Einstein", "Opportunity"},
+            {"The best way to predict the future is to invent it.", "Alan Kay", "Innovation"},
+            {"Everything you've ever wanted is on the other side of fear.", "George Addair", "Courage"},
+            {"The only limit to our realization of tomorrow is our doubts of today.", "Franklin D. Roosevelt", "Belief"}
+        };
+        
+        String[] selectedQuote = fallbackQuotes[random.nextInt(fallbackQuotes.length)];
+        
+        Map<String, Object> quote = new HashMap<>();
+        quote.put("text", selectedQuote[0]);
+        quote.put("author", selectedQuote[1]);
+        quote.put("category", selectedQuote[2]);
+        
+        return quote;
     }
     
     public Map<String, Object> getBusLocation() {
@@ -228,11 +331,36 @@ public class ExternalDataService {
         return traffic;
     }
     
-    private Map<String, Object> createEmptyQuoteData() {
-        Map<String, Object> quote = new HashMap<>();
-        quote.put("text", "");
-        quote.put("author", "");
-        quote.put("category", "");
-        return quote;
+    // Fallback data methods (with mock data)
+    private Map<String, Object> createFallbackWeatherData() {
+        Map<String, Object> weather = new HashMap<>();
+        weather.put("temperature", "22°C");
+        weather.put("condition", "Partly Cloudy");
+        weather.put("humidity", "65%");
+        weather.put("location", "Bangalore");
+        weather.put("source", "Fallback");
+        return weather;
+    }
+    
+    private Map<String, Object> createFallbackTrafficData() {
+        Map<String, Object> traffic = new HashMap<>();
+        traffic.put("status", "Moderate");
+        traffic.put("travelTime", "25 min");
+        traffic.put("distance", "8.5 km");
+        traffic.put("message", "Normal traffic conditions");
+        traffic.put("location", "Bangalore");
+        traffic.put("source", "Fallback");
+        return traffic;
+    }
+    
+    // Helper class for quote APIs
+    private static class QuoteApi {
+        final String url;
+        final String type;
+        
+        QuoteApi(String url, String type) {
+            this.url = url;
+            this.type = type;
+        }
     }
 } 

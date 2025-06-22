@@ -53,7 +53,7 @@ public class ScreensaverView extends VerticalLayout {
         this.locationManager = new LocationManager(this);
         
         initUI();
-        loadContent();
+        loadInitialContent();
         checkLocationStatus();
     }
     
@@ -67,7 +67,7 @@ public class ScreensaverView extends VerticalLayout {
         // Add content to background container
         backgroundContainer.addContent(
             contentDisplay.getGreetingLabel(),
-            contentDisplay.getTimeLabel(),
+            contentDisplay.getClockContainer(),
             contentDisplay.getDateLabel(),
             contentDisplay.getQuoteLabel(),
             contentDisplay.getWeatherLabel(),
@@ -78,7 +78,8 @@ public class ScreensaverView extends VerticalLayout {
         add(backgroundContainer, controlButtons.getSettingsButton(), controlButtons.getLocationButton());
     }
     
-    private void loadContent() {
+    private void loadInitialContent() {
+        // Load initial content once, then let JavaScript handle real-time updates
         Map<String, Object> content = screensaverService.getScreensaverContent();
         updateUI(content);
         updateBackground();

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Test</title>
+    <link rel="stylesheet" href="/css/realtime.css">
+    <style>
+        body {
+            font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #333;
+        }
+        .success { background: #2d5a2d; }
+        .error { background: #5a2d2d; }
+        .info { background: #2d2d5a; }
+        .clock-container {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 8px;
+            margin: 20px 0;
+        }
+        .clock-time {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 4rem;
+            font-weight: 300;
+            color: #ffffff;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            letter-spacing: -0.02em;
+        }
+        .clock-seconds {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.7);
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+            letter-spacing: -0.01em;
+            align-self: flex-end;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Real-time Smart Screensaver Test</h1>
+        
+        <div class="status info">
+            <h2>Test Status</h2>
+            <p>This page tests the real-time functionality of your smart screensaver.</p>
+        </div>
+        
+        <div class="status">
+            <h3>Time Display (Client-side)</h3>
+            <div class="clock-container">
+                <div id="time-display" class="clock-time">Loading...</div>
+                <div id="seconds-display" class="clock-seconds">:00</div>
+            </div>
+            <p>Should update every second without server calls</p>
+        </div>
+        
+        <div class="status">
+            <h3>Date Display (Client-side)</h3>
+            <h3 id="date-display">Loading...</h3>
+            <p>Should update automatically</p>
+        </div>
+        
+        <div class="status">
+            <h3>Greeting (Client-side)</h3>
+            <h1 id="greeting-display">Loading...</h1>
+            <p>Should change based on time of day</p>
+        </div>
+        
+        <div class="status">
+            <h3>Weather (Server-side)</h3>
+            <p id="weather-display">Loading...</p>
+            <p>Updates every 30 seconds from server</p>
+        </div>
+        
+        <div class="status">
+            <h3>Traffic (Server-side)</h3>
+            <p id="traffic-display">Loading...</p>
+            <p>Updates every 30 seconds from server</p>
+        </div>
+        
+        <div class="status">
+            <h3>Quote (Server-side)</h3>
+            <p id="quote-display" style="font-style: italic;">Loading...</p>
+            <p>Updates every 30 seconds from server</p>
+        </div>
+        
+        <div class="status">
+            <h3>Connection Status</h3>
+            <p id="connection-status">Checking...</p>
+        </div>
+        
+        <div class="status">
+            <h3>Last Update</h3>
+            <p id="last-update">Never</p>
+        </div>
+    </div>
+
+    <script>
+        // Simple test implementation
+        class RealtimeTest {
+            constructor() {
+                this.timeDisplay = document.getElementById('time-display');
+                this.secondsDisplay = document.getElementById('seconds-display');
+                this.dateDisplay = document.getElementById('date-display');
+                this.greetingDisplay = document.getElementById('greeting-display');
+                this.weatherDisplay = document.getElementById('weather-display');
+                this.trafficDisplay = document.getElementById('traffic-display');
+                this.quoteDisplay = document.getElementById('quote-display');
+                this.connectionStatus = document.getElementById('connection-status');
+                this.lastUpdate = document.getElementById('last-update');
+                
+                this.init();
+            }
+            
+            init() {
+                this.startTimeUpdates();
+                this.fetchServerData();
+                this.startDataFetching();
+            }
+            
+            startTimeUpdates() {
+                this.updateTime();
+                setInterval(() => this.updateTime(), 1000);
+            }
+            
+            updateTime() {
+                const now = new Date();
+                
+                // Update time
+                const timeString = now.toLocaleTimeString('en-US', {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                
+                // Split time into hours:minutes and seconds
+                const timeParts = timeString.split(':');
+                const hoursMinutes = timeParts[0] + ':' + timeParts[1];
+                const seconds = ':' + timeParts[2];
+                
+                this.timeDisplay.textContent = hoursMinutes;
+                this.secondsDisplay.textContent = seconds;
+                
+                // Update date
+                const dateString = now.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                this.dateDisplay.textContent = dateString;
+                
+                // Update greeting
+                const hour = now.getHours();
+                let greeting = 'Hello';
+                if (hour < 12) greeting = 'Good Morning';
+                else if (hour < 17) greeting = 'Good Afternoon';
+                else if (hour < 21) greeting = 'Good Evening';
+                else greeting = 'Good Night';
+                
+                this.greetingDisplay.textContent = greeting + ', User!';
+            }
+            
+            startDataFetching() {
+                setInterval(() => this.fetchServerData(), 30000);
+            }
+            
+            async fetchServerData() {
+                try {
+                    this.connectionStatus.textContent = 'Connected';
+                    this.connectionStatus.style.color = '#4CAF50';
+                    
+                    const response = await fetch('/api/realtime-data');
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.updateServerData(data);
+                        this.lastUpdate.textContent = new Date().toLocaleTimeString();
+                    } else {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch server data:', error);
+                    this.connectionStatus.textContent = 'Disconnected';
+                    this.connectionStatus.style.color = '#f44336';
+                }
+            }
+            
+            updateServerData(data) {
+                // Update weather
+                if (data.weather) {
+                    const weather = data.weather;
+                    this.weatherDisplay.textContent = 
+                        `Weather: ${weather.temperature || 'N/A'}, ${weather.condition || 'N/A'} (${weather.location || 'Unknown'})`;
+                }
+                
+                // Update traffic
+                if (data.traffic) {
+                    const traffic = data.traffic;
+                    this.trafficDisplay.textContent = 
+                        `Traffic: ${traffic.status || 'N/A'} (${traffic.travelTime || 'N/A'}) - ${traffic.location || 'Unknown'}`;
+                }
+                
+                // Update quote
+                if (data.quote) {
+                    this.quoteDisplay.textContent = data.quote;
+                }
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new RealtimeTest();
+        });
+    </script>
+</body>
+</html> 

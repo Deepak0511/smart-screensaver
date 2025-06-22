@@ -65,6 +65,18 @@ public class SettingsView extends VerticalLayout {
         backButton.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("")));
         backButton.addClassName(LumoUtility.Margin.Bottom.MEDIUM);
         
+        // System Settings button
+        Button systemSettingsButton = new Button("System Settings", VaadinIcon.COG.create());
+        systemSettingsButton.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("system-settings")));
+        systemSettingsButton.addClassName(LumoUtility.Margin.Bottom.MEDIUM);
+        systemSettingsButton.addClassName(LumoUtility.Margin.Left.MEDIUM);
+        systemSettingsButton.addClassName(LumoUtility.Background.CONTRAST_10);
+        
+        // Button layout
+        HorizontalLayout buttonLayout = new HorizontalLayout();
+        buttonLayout.add(backButton, systemSettingsButton);
+        buttonLayout.setSpacing(true);
+        
         // Main content layout
         HorizontalLayout mainLayout = new HorizontalLayout();
         mainLayout.setSizeFull();
@@ -80,7 +92,7 @@ public class SettingsView extends VerticalLayout {
         
         mainLayout.add(preferencesPanel, routinesPanel);
         
-        add(backButton, header, mainLayout);
+        add(buttonLayout, header, mainLayout);
     }
     
     private VerticalLayout createPreferencesPanel() {

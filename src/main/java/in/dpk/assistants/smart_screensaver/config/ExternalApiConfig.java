@@ -28,10 +28,17 @@ public class ExternalApiConfig {
     private String quoteApiUrl = "https://api.quotable.io/random";
     
     @Bean
-    public WebClient webClient() {
+    public WebClient webClient() throws SSLException {
+        // Create SSL context that trusts all certificates (for development)
+        SslContext sslContext = SslContextBuilder
+                .forClient()
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .build();
+        
         return WebClient.builder()
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(2 * 1024 * 1024))
                 .filter(errorHandler())
+                .filter(sslFilter())
                 .build();
     }
     
@@ -42,5 +49,12 @@ public class ExternalApiConfig {
             }
             return Mono.just(clientResponse);
         });
+    }
+    
+    private ExchangeFilterFunction sslFilter() {
+        return (request, next) -> {
+            log.debug("Making request to: {}", request.url());
+            return next.exchange(request);
+        };
     }
 } 

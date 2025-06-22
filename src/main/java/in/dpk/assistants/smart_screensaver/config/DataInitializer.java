@@ -4,6 +4,7 @@ import in.dpk.assistants.smart_screensaver.entity.UserPreference;
 import in.dpk.assistants.smart_screensaver.entity.Routine;
 import in.dpk.assistants.smart_screensaver.repository.UserPreferenceRepository;
 import in.dpk.assistants.smart_screensaver.repository.RoutineRepository;
+import in.dpk.assistants.smart_screensaver.service.SystemSettingsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -22,10 +23,17 @@ public class DataInitializer implements CommandLineRunner {
 
     @Autowired
     private RoutineRepository routineRepository;
+    
+    @Autowired
+    private SystemSettingsService systemSettingsService;
 
     @Override
     public void run(String... args) throws Exception {
         log.info("Starting data initialization...");
+        
+        // Initialize system settings
+        log.info("Initializing system settings...");
+        systemSettingsService.initializeDefaultSettings();
         
         // Initialize user preferences if not exists
         if (userPreferenceRepository.count() == 0) {
